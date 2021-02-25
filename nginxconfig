@@ -1,0 +1,821 @@
+[root@myserver ~]# sudo nginx -T
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+# configuration file /etc/nginx/nginx.conf:
+# /**
+#  * @version    1.13.0
+#  * @package    Engintron for cPanel/WHM
+#  * @author     Fotis Evangelou (https://kodeka.io)
+#  * @url        https://engintron.com
+#  * @copyright  Copyright (c) 2018 - 2020 Kodeka OÜ. All rights reserved.
+#  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
+#  */
+
+user nginx;
+pid /var/run/nginx.pid;
+
+worker_processes auto;
+worker_rlimit_nofile 65535;
+
+events {
+    multi_accept on;
+    use epoll;
+    worker_connections 65535;
+}
+
+http {
+    ## Basic Settings ##
+    client_body_buffer_size        128k;
+    client_body_timeout            30s; # Use 5s for high-traffic sites
+    client_header_timeout          30s; # Use 5s for high-traffic sites
+    client_max_body_size           1024m;
+    keepalive_timeout              30s;
+    open_file_cache                max=200000 inactive=20s;
+    open_file_cache_errors         on;
+    open_file_cache_min_uses       2;
+    open_file_cache_valid          30s;
+    port_in_redirect               off;
+    reset_timedout_connection      on;
+    send_timeout                   30s;
+    sendfile                       on;
+    server_name_in_redirect        off;
+    server_names_hash_bucket_size  1024;
+    server_names_hash_max_size     1024;
+    server_tokens                  off;
+    tcp_nodelay                    on;
+    tcp_nopush                     on;
+    types_hash_max_size            2048;
+
+    ## DNS Resolver ##
+    # If in China, enable the OpenDNS entry that matches your network connectivity (IPv4 only or IPv4 & IPv6)
+    # OpenDNS (IPv4 only)
+    #resolver                      208.67.222.222 208.67.220.220;
+    # OpenDNS (IPv4 & IPv6)
+    #resolver                      208.67.222.222 208.67.220.220 [2620:0:ccc::2] [2620:0:ccd::2];
+    # CloudFlare Public DNS (IPv4 only)
+    #resolver                      1.1.1.1 1.0.0.1;
+    # CloudFlare Public DNS (IPv4 & IPv6)
+    #resolver                      1.1.1.1 1.0.0.1 [2606:4700:4700::1111] [2606:4700:4700::1001];
+    # Google Public DNS (IPv4 only)
+    #resolver                      8.8.8.8 8.8.4.4;
+    # Google Public DNS (IPv4 & IPv6) [default]
+    resolver                       8.8.8.8 8.8.4.4 [2001:4860:4860::8888] [2001:4860:4860::8844];
+
+    ## Real IP Forwarding ##
+    set_real_ip_from 127.0.0.1;
+
+    # CloudFlare IPs
+    # List from: https://www.cloudflare.com/ips-v4
+    set_real_ip_from 103.21.244.0/22;
+    set_real_ip_from 103.22.200.0/22;
+    set_real_ip_from 103.31.4.0/22;
+    set_real_ip_from 104.16.0.0/12;
+    set_real_ip_from 108.162.192.0/18;
+    set_real_ip_from 131.0.72.0/22;
+    set_real_ip_from 141.101.64.0/18;
+    set_real_ip_from 162.158.0.0/15;
+    set_real_ip_from 172.64.0.0/13;
+    set_real_ip_from 173.245.48.0/20;
+    set_real_ip_from 188.114.96.0/20;
+    set_real_ip_from 190.93.240.0/20;
+    set_real_ip_from 197.234.240.0/22;
+    set_real_ip_from 198.41.128.0/17;
+    # List from: https://www.cloudflare.com/ips-v6
+    set_real_ip_from 2400:cb00::/32;
+    set_real_ip_from 2405:8100::/32;
+    set_real_ip_from 2405:b500::/32;
+    set_real_ip_from 2606:4700::/32;
+    set_real_ip_from 2803:f800::/32;
+    set_real_ip_from 2c0f:f248::/32;
+    set_real_ip_from 2a06:98c0::/29;
+
+    # Replace with correct visitor IP
+    real_ip_header X-Forwarded-For;
+    real_ip_recursive on;
+
+    ## MIME ##
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    ## Logging Settings ##
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+
+    ## Gzip Settings ##
+    gzip on;
+    gzip_buffers 16 8k;
+    gzip_comp_level 5;
+    gzip_disable "msie6";
+    gzip_min_length 256;
+    gzip_proxied any;
+    gzip_types
+        application/atom+xml
+        application/javascript
+        application/json
+        application/ld+json
+        application/manifest+json
+        application/rss+xml
+        application/vnd.geo+json
+        application/vnd.ms-fontobject
+        application/x-font-ttf
+        application/x-javascript
+        application/x-web-app-manifest+json
+        application/xhtml+xml
+        application/xml
+        font/opentype
+        image/bmp
+        image/svg+xml
+        image/x-icon
+        text/cache-manifest
+        text/css
+        text/javascript
+        text/plain
+        text/vcard
+        text/vnd.rim.location.xloc
+        text/vtt
+        text/x-component
+        text/x-cross-domain-policy
+        text/x-js
+        text/xml;
+    gzip_vary on;
+
+    # Security Headers
+    add_header        X-XSS-Protection "1; mode=block" always;
+    add_header        X-Content-Type-Options "nosniff" always;
+
+    # Info
+    add_header        X-Nginx-Upstream-Cache-Status $upstream_cache_status;
+    add_header        X-Server-Powered-By "Engintron";
+
+    # Proxy Cache Settings
+    proxy_cache_path  /var/cache/nginx/engintron_dynamic  levels=1:2 keys_zone=engintron_dynamic:512m max_size=4g inactive=12h use_temp_path=off;
+    proxy_cache_path  /var/cache/nginx/engintron_static   levels=1:2 keys_zone=engintron_static:512m  max_size=4g inactive=12h use_temp_path=off;
+    proxy_temp_path   /var/cache/nginx/engintron_temp;
+
+    ## Virtual Host Configs ##
+    include /etc/nginx/conf.d/*.conf;
+}
+
+# configuration file /etc/nginx/mime.types:
+# /**
+#  * @version    1.13.0
+#  * @package    Engintron for cPanel/WHM
+#  * @author     Fotis Evangelou (https://kodeka.io)
+#  * @url        https://engintron.com
+#  * @copyright  Copyright (c) 2018 - 2020 Kodeka OÜ. All rights reserved.
+#  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
+#  */
+
+types {
+    application/atom+xml                                                         atom;
+    application/font-woff                                                        woff;
+    application/font-woff2                                                       woff2;
+    application/java-archive                                                     jar war ear;
+    application/javascript                                                       js;
+    application/json                                                             json;
+    application/mac-binhex40                                                     hqx;
+    application/msword                                                           doc;
+    application/octet-stream                                                     bin exe dll;
+    application/octet-stream                                                     deb;
+    application/octet-stream                                                     dmg;
+    application/octet-stream                                                     iso img;
+    application/octet-stream                                                     msi msp msm;
+    application/pdf                                                              pdf;
+    application/postscript                                                       ps eps ai;
+    application/rss+xml                                                          rss;
+    application/rtf                                                              rtf;
+    application/vnd.apple.mpegurl                                                m3u8;
+    application/vnd.google-earth.kml+xml                                         kml;
+    application/vnd.google-earth.kmz                                             kmz;
+    application/vnd.ms-excel                                                     xls;
+    application/vnd.ms-fontobject                                                eot;
+    application/vnd.ms-powerpoint                                                ppt;
+    application/vnd.oasis.opendocument.graphics                                  odg;
+    application/vnd.oasis.opendocument.presentation                              odp;
+    application/vnd.oasis.opendocument.spreadsheet                               ods;
+    application/vnd.oasis.opendocument.text                                      odt;
+    application/vnd.openxmlformats-officedocument.presentationml.presentation    pptx;
+    application/vnd.openxmlformats-officedocument.spreadsheetml.sheet            xlsx;
+    application/vnd.openxmlformats-officedocument.wordprocessingml.document      docx;
+    application/vnd.wap.wmlc                                                     wmlc;
+    application/x-7z-compressed                                                  7z;
+    application/x-cocoa                                                          cco;
+    application/x-font-otf                                                       otf;
+    application/x-font-ttf                                                       ttc ttf;
+    application/x-java-archive-diff                                              jardiff;
+    application/x-java-jnlp-file                                                 jnlp;
+    application/x-makeself                                                       run;
+    application/x-perl                                                           pl pm;
+    application/x-pilot                                                          prc pdb;
+    application/x-rar-compressed                                                 rar;
+    application/x-redhat-package-manager                                         rpm;
+    application/x-sea                                                            sea;
+    application/x-shockwave-flash                                                swf;
+    application/x-stuffit                                                        sit;
+    application/x-tcl                                                            tcl tk;
+    application/x-x509-ca-cert                                                   der pem crt;
+    application/x-xpinstall                                                      xpi;
+    application/xhtml+xml                                                        xhtml;
+    application/xspf+xml                                                         xspf;
+    application/zip                                                              zip;
+    audio/midi                                                                   mid midi kar;
+    audio/mpeg                                                                   mp3;
+    audio/ogg                                                                    ogg;
+    audio/x-m4a                                                                  m4a;
+    audio/x-realaudio                                                            ra;
+    image/gif                                                                    gif;
+    image/jpeg                                                                   jpeg jpg;
+    image/png                                                                    png;
+    image/svg+xml                                                                svg svgz;
+    image/tiff                                                                   tif tiff;
+    image/vnd.wap.wbmp                                                           wbmp;
+    image/webp                                                                   webp;
+    image/x-icon                                                                 ico;
+    image/x-jng                                                                  jng;
+    image/x-ms-bmp                                                               bmp;
+    text/css                                                                     css;
+    text/html                                                                    html htm shtml;
+    text/mathml                                                                  mml;
+    text/plain                                                                   txt;
+    text/vnd.sun.j2me.app-descriptor                                             jad;
+    text/vnd.wap.wml                                                             wml;
+    text/x-component                                                             htc;
+    text/xml                                                                     xml;
+    video/3gpp                                                                   3gpp 3gp;
+    video/mp2t                                                                   ts;
+    video/mp4                                                                    mp4;
+    video/mpeg                                                                   mpeg mpg;
+    video/quicktime                                                              mov;
+    video/webm                                                                   webm;
+    video/x-flv                                                                  flv;
+    video/x-m4v                                                                  m4v;
+    video/x-mng                                                                  mng;
+    video/x-ms-asf                                                               asx asf;
+    video/x-ms-wmv                                                               wmv;
+    video/x-msvideo                                                              avi;
+}
+
+# configuration file /etc/nginx/conf.d/default.conf:
+# /**
+#  * @version    1.13.0
+#  * @package    Engintron for cPanel/WHM
+#  * @author     Fotis Evangelou (https://kodeka.io)
+#  * @url        https://engintron.com
+#  * @copyright  Copyright (c) 2018 - 2020 Kodeka OÜ. All rights reserved.
+#  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
+#  */
+
+server {
+    #listen 8080 default_server;
+    listen [::]:8080 default_server ipv6only=off;
+
+    server_name localhost;
+
+    deny all; # DO NOT REMOVE OR CHANGE THIS LINE - Used when Engintron is disabled to block Nginx from becoming an open proxy
+
+    # Set the port for HTTP proxying
+    set $PROXY_TO_PORT 80;
+
+    include common_http.conf;
+
+    location = /nginx_status {
+        stub_status;
+        access_log off;
+        log_not_found off;
+        # Uncomment the following 2 lines to make the Nginx status page private.
+        # If you do this and you have Munin installed, graphs for Nginx will stop working.
+        #allow 127.0.0.1;
+        #deny all;
+    }
+
+    location = /whm-server-status {
+        proxy_pass http://127.0.0.1:80; # Apache Status Page
+        # Comment the following 2 lines to make the Apache status page public
+        allow 127.0.0.1;
+        deny all;
+    }
+}
+
+# configuration file /etc/nginx/common_http.conf:
+# /**
+#  * @version    1.13.0
+#  * @package    Engintron for cPanel/WHM
+#  * @author     Fotis Evangelou (https://kodeka.io)
+#  * @url        https://engintron.com
+#  * @copyright  Copyright (c) 2018 - 2020 Kodeka OÜ. All rights reserved.
+#  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
+#  */
+
+# Common definitions for HTTP content
+
+# Initialize important variables
+set $CACHE_BYPASS_FOR_DYNAMIC 0;
+set $CACHE_BYPASS_FOR_STATIC 0;
+set $PROXY_DOMAIN_OR_IP $host;
+set $PROXY_FORWARDED_HOST $host;
+set $PROXY_SCHEME $scheme;
+set $SITE_URI "$host$request_uri";
+
+# Generic query string to request a page bypassing Nginx's caching entirely for both dynamic & static content
+if ($query_string ~* "nocache") {
+    set $CACHE_BYPASS_FOR_DYNAMIC 1;
+    set $CACHE_BYPASS_FOR_STATIC 1;
+}
+
+# Proxy requests to "localhost"
+if ($host ~* "localhost") {
+    set $PROXY_DOMAIN_OR_IP "127.0.0.1";
+}
+
+# Disable caching for cPanel specific subdomains
+if ($host ~* "^(webmail|cpanel|whm|webdisk|cpcalendars|cpcontacts)\.") {
+    set $CACHE_BYPASS_FOR_DYNAMIC 1;
+    set $CACHE_BYPASS_FOR_STATIC 1;
+}
+
+# Fix Horde webmail forwarding
+if ($host ~* "^webmail\.") {
+    set $PROXY_FORWARDED_HOST '';
+}
+
+# Set custom rules like domain/IP exclusions or redirects here
+include custom_rules;
+
+location / {
+    try_files $uri $uri/ @backend;
+}
+
+location @backend {
+    include proxy_params_common;
+    # === MICRO CACHING ===
+    # Comment the following line to disable 1 second micro-caching for dynamic HTML content
+    include proxy_params_dynamic;
+}
+
+# Enable browser cache for static content files (TTL is 1 hour)
+location ~* \.(?:json|xml|rss|atom)$ {
+    include proxy_params_common;
+    include proxy_params_static;
+    expires 1h;
+}
+
+# Enable browser cache for CSS / JS (TTL is 30 days)
+location ~* \.(?:css|js)$ {
+    include proxy_params_common;
+    include proxy_params_static;
+    expires 30d;
+}
+
+# Enable browser cache for images (TTL is 60 days)
+location ~* \.(?:ico|jpg|jpeg|gif|png|webp)$ {
+    include proxy_params_common;
+    include proxy_params_static;
+    expires 60d;
+}
+
+# Enable browser cache for archives, documents & media files (TTL is 60 days)
+location ~* \.(?:3gp|7z|avi|bmp|bz2|csv|divx|doc|docx|eot|exe|flac|flv|gz|less|mid|midi|mka|mkv|mov|mp3|mp4|mpeg|mpg|odp|ods|odt|ogg|ogm|ogv|opus|pdf|ppt|pptx|rar|rtf|swf|tar|tbz|tgz|tiff|txz|wav|webm|wma|wmv|xls|xlsx|xz|zip)$ {
+    set $CACHE_BYPASS_FOR_STATIC 1;
+    include proxy_params_common;
+    include proxy_params_static;
+    expires 60d;
+}
+
+# Enable browser cache for fonts & fix @font-face cross-domain restriction (TTL is 60 days)
+location ~* \.(eot|ttf|otf|woff|woff2|svg|svgz)$ {
+    include proxy_params_common;
+    include proxy_params_static;
+    expires 60d;
+}
+
+# Prevent logging of favicon and robot request errors
+location = /favicon.ico {
+    include proxy_params_common;
+    include proxy_params_static;
+    expires 60d;
+    log_not_found off;
+}
+
+location = /robots.txt  {
+    include proxy_params_common;
+    include proxy_params_static;
+    expires 1d;
+    log_not_found off;
+}
+
+# Deny access to files like .htaccess or .htpasswd
+location ~ /\.ht {
+    deny all;
+}
+
+# configuration file /etc/nginx/custom_rules:
+#####################################################################
+# === Place your custom rules for Nginx here ===
+#
+# Some examples:
+# - Engintron & CloudFlare
+# - HTTP to HTTPS redirects when using CloudFlare
+# - Setting up domains with dedicated IPs on the system
+# - Cache exclusions for domains, subdomains or even directories
+# - Any other global or domain specific rule (redirect, process etc.)
+#
+# For up to date info check out the Engintron wiki at:
+# https://engintron.com/docs
+#
+# *** Updated for Engintron v1.13.0 ***
+#
+#####################################################################
+
+# === FOR USE WITH CLOUDFLARE ===
+#
+# a) If your server has a single shared IP ONLY and you wish to use CloudFlare for any (or all) of your sites
+#    you will have to specify this shared IP address below otherwise you'll get errors from CloudFlare.
+#    This change will simply tell Nginx to skip DNS resolving and just forward traffic to the shared IP.
+#    Uncomment the following line if all your sites on the shared (main) IP of your server are on CloudFlare:
+#
+# set $PROXY_DOMAIN_OR_IP "XXX.XXX.XXX.XXX"; # Use your cPanel's shared IP address here
+#
+# b) If you utilize CloudFlare on a cPanel server with BOTH a shared IP and dedicated IPs for domains, you will
+#    have to set the IP for each such domain ONLY at the "WHEN TO SPECIFY A DOMAIN IP" section lower in this file.
+#
+# c) It is possible to force-redirect all your domains on CloudFlare to HTTPS if you have TLS/SSL enabled
+#    in CloudFlare's "Crypto" settings page. Make sure you use "Flexible SSL" there so CloudFlare proxies
+#    traffic from HTTPS to Nginx's HTTP port (80). This way you'll also be able to serve sites over HTTPS with
+#    no actual TLS/SSL certificate installed on the server, as long as they exist in CloudFlare and have
+#    CloudFlare's shared TLS/SSL certificate enabled there. To redirect to HTTPS, simply specify a block similar
+#    to the one below and make sure you set the domains you DO NOT want to automatically redirect to HTTPS.
+#
+# # === Protocol redirect handling when using CloudFlare [start] ===
+#
+# set $redirToSSL "";
+# if ($http_cf_visitor ~ '{"scheme":"http"}') {
+#     set $redirToSSL "on";
+# }
+#
+# # Set each domain you DO NOT want to automatically redirect to HTTPS when using CloudFlare only below
+# # and repeat the process with additional "if" blocks for more domains
+#
+# if ($host ~ 'domain-to-exclude-from-redirect.com') {
+#     set $redirToSSL "off";
+# }
+# if ($redirToSSL = "on") {
+#     return 301 https://$host$request_uri;
+# }
+#
+# # === Protocol redirect handling when using CloudFlare [finish] ===
+
+
+
+# === WHEN TO SPECIFY A DOMAIN IP ===
+# By default, Nginx will redirect requests to the right domain IP by using DNS resolving.
+# However there are cases where you want to specify an IP for use with Nginx:
+# - When you use CloudFlare for certain domains only on your server,
+#   regardless of whether these domains use the server's shared IP or a dedicated IP.
+# - When you are working on a domain which does not yet (DNS) resolve to your server,
+#   but you want to access it by modifying your computer's "hosts" file.
+#
+# To specify the domain IP in such cases, simply enter a domain or subdomain in an "if" block
+# (as shown below) and inside that block set the appropriate shared or dedicated IP to point to.
+#
+# To specify the IP for a domain simply uncomment the following 3 lines and make sure you replace
+# example.com with your actual domain or subdomain and also replace XXX.XXX.XXX.XXX with the actual
+# IP assigned to that domain. To specify the IP for more domains, simply copy that "if" block
+# (per domain) and change accordingly.
+#
+# if ($host ~ "example.com") {
+#     set $PROXY_DOMAIN_OR_IP "XXX.XXX.XXX.XXX";
+# }
+
+
+
+# === DOMAIN AND URL PATH EXCLUSIONS FROM CACHING ===
+# If you wish to exclude certain domains, subdomains or even full URL paths from micro-caching and/or
+# static file caching, simply specify them below and use a colon (|) character as a separator.
+# Remember that if you specify a "naked" domain name, e.g. mynicedomain.com, every subdomain e.g.
+# support.mynicedomain.com will also be excluded from caching. Decide wisely!
+# If you wish to disable ONLY micro-caching, then comment the line "set $CACHE_BYPASS_FOR_STATIC".
+# If you wish to disable ONLY static file caching, then comment the line "set $CACHE_BYPASS_FOR_DYNAMIC".
+#
+# Note: Don't include the "http(s)://" portion of a URL.
+#
+# if ($SITE_URI ~* "example.com|example2.com/path|example3.com/some/other/path|subdomain.example4.com") {
+#     set $CACHE_BYPASS_FOR_DYNAMIC 1; # Disables micro-caching
+#     set $CACHE_BYPASS_FOR_STATIC 1; # Disables static file caching
+# }
+
+
+
+# === HOST NODE (OR OTHER NON-PHP) APSS ON CPANEL ===
+# One of the nice-to-have things with Engintron is that it makes it a breeze to proxy requests to any port in your server, supporting apps that would never otherwise work with standard cPanel domains. Such an example is a Node.js app running on port 3000 or ElasticSearch, a popular search engine written in Java (works on port 9200), which usually comes with frontends that also work on non-standard web ports (e.g. Cerebro uses port 9000).
+#
+# If you want to proxy both HTTP and HTTPS traffic to a given app, you have to do 2 things:
+#
+# First create a domain or subdomain in cPanel for the app, even if you don't need to host the app within the typical folder structure in cPanel. This way you allow cPanel to create a domain reference so it can utilize AutoSSL and therefore have an SSL certificate issued for that domain/subdomain. Of course, to resolve (owner) permission issues, you should at least have your app inside the given user's home folder (/home/USERNAME/).
+#
+# Then create a proxying rule here and define the internal app port as well as the protocol (e.g. if you need to enforce HTTP because your app does not "speak" HTTPS):
+#
+# An example rule for a Node.js app that listens on port 3000, supports HTTP only & needs to respond to a naked or www subdomain would be:
+#
+# if ($host ~ "mynodeapp.com") {
+#     set $PROXY_SCHEME "http";
+#     set $PROXY_TO_PORT 3000;
+# }
+#
+# If you want the app to proxy a certain subdomain, make the rule stricter (replacing ~ with =):
+#
+# if ($host = "app.mynodeapp.com") {
+#     set $PROXY_SCHEME "http";
+#     set $PROXY_TO_PORT 3000;
+# }
+
+# configuration file /etc/nginx/proxy_params_common:
+# /**
+#  * @version    1.13.0
+#  * @package    Engintron for cPanel/WHM
+#  * @author     Fotis Evangelou (https://kodeka.io)
+#  * @url        https://engintron.com
+#  * @copyright  Copyright (c) 2018 - 2020 Kodeka OÜ. All rights reserved.
+#  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
+#  */
+
+# General Proxy Settings
+proxy_pass                    $PROXY_SCHEME://$PROXY_DOMAIN_OR_IP:$PROXY_TO_PORT;
+proxy_hide_header             Upgrade;
+proxy_http_version            1.1;                # Always upgrade to HTTP/1.1
+proxy_set_header              Accept-Encoding ""; # Optimize encoding
+proxy_set_header              Connection "";      # Enable keepalives
+proxy_set_header              Host $host;
+proxy_set_header              Proxy "";
+proxy_set_header              Referer $http_referer;
+proxy_set_header              X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header              X-Forwarded-Host $PROXY_FORWARDED_HOST;
+proxy_set_header              X-Forwarded-Port $server_port;
+proxy_set_header              X-Forwarded-Proto $scheme;
+proxy_set_header              X-Forwarded-Server $host;
+proxy_set_header              X-Real-IP $remote_addr;
+proxy_set_header              CF-Connecting-IP $http_cf_connecting_ip;
+proxy_set_header              CF-Visitor $http_cf_visitor;
+
+# Buffers
+proxy_buffers                 256 16k;
+proxy_buffer_size             128k;
+proxy_busy_buffers_size       256k;
+proxy_temp_file_write_size    256k;
+
+# Timeouts
+proxy_connect_timeout         300s;
+proxy_read_timeout            300s;
+proxy_send_timeout            300s;
+
+# configuration file /etc/nginx/proxy_params_dynamic:
+# /**
+#  * @version    1.13.0
+#  * @package    Engintron for cPanel/WHM
+#  * @author     Fotis Evangelou (https://kodeka.io)
+#  * @url        https://engintron.com
+#  * @copyright  Copyright (c) 2018 - 2020 Kodeka OÜ. All rights reserved.
+#  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
+#  */
+
+# === MICRO CACHING ===
+# 1 second (1s) micro-caching enabled for all proxied dynamic HTML content
+# If you wish to have longer cache times, change the "proxy_cache_valid"
+# line from "1s" to whatever time you want (e.g. "30s" or "1m").
+# This cache is turned off when certain criteria are met, e.g. when a site
+# manager logs into WordPress' backend/admin section.
+
+#############################################################################################
+# ADVANCED USERS ONLY:
+# This setting is for cPanel servers with only one to a few sites & NO user-generated content
+# in the frontend (no forums, no e-commerce sites, no user logins!) - you have been warned!
+# Use the time defined in "$EXPIRES_FOR_DYNAMIC" to force client-side caching on dynamic content
+# (set to 1m by default). To enable, uncomment all lines located at the bottom of this file.
+# You can also raise "proxy_cache_valid" to the same value (e.g. "1m") to force longer
+# server-side caching.
+# The combination of these settings will have Nginx serve all content without issuing requests
+# to Apache except only when it's required to refresh its cache.
+
+set $EXPIRES_FOR_DYNAMIC 1m;
+
+#############################################################################################
+
+# Allow separate cache entries for mobile devices (smartphones & tables)
+set $MOBILE "";
+if ($http_user_agent ~* "(iPhone|iPod|iPad|Android|Mobile|Tablet)") {
+    set $MOBILE "m_";
+}
+
+# CMS (& CMS extension) specific cookies (e.g. Joomla, K2 for Joomla, WordPress, WooCommerce, PrestaShop, Magento etc.)
+if ($http_cookie ~* "(joomla_[a-zA-Z0-9_]+|userID|wordpress_(?!test_)[a-zA-Z0-9_]+|wp-postpass|comment_author_[a-zA-Z0-9_]+|woocommerce_cart_hash|woocommerce_items_in_cart|wp_woocommerce_session_[a-zA-Z0-9]+|sid_customer_|sid_admin_|PrestaShop-[a-zA-Z0-9]+|SESS[a-zA-Z0-9]+|SSESS[a-zA-Z0-9]+|NO_CACHE|external_no_cache|adminhtml|private_content_version)") {
+    set $CACHE_BYPASS_FOR_DYNAMIC 1;
+    set $EXPIRES_FOR_DYNAMIC 0;
+}
+
+# Invision Power Board (IPB) v3+
+if ($cookie_member_id ~ "^[1-9][0-9]*$") {
+    set $CACHE_BYPASS_FOR_DYNAMIC 1;
+    set $EXPIRES_FOR_DYNAMIC 0;
+}
+
+# Invision Power Board (IPB) v4+
+if ($cookie_ips4_member_id ~ "^[1-9][0-9]*$") {
+    set $CACHE_BYPASS_FOR_DYNAMIC 1;
+    set $EXPIRES_FOR_DYNAMIC 0;
+}
+if ($http_cookie ~ "ips4_IPSSessionFront") {
+    set $CACHE_BYPASS_FOR_DYNAMIC 1;
+    set $EXPIRES_FOR_DYNAMIC 0;
+}
+
+# Admin sections & generic entry points for CMSs (incl. Joomla, WordPress, phpBB, Drupal, Craft)
+if ($request_uri ~* "(/administrator|com_user|com_users|com_contact|com_mailto|/component/user|/component/users|/component/contact|/component/mailto|/installation|/wp-admin|/wp-login.php|/cart|/my-account|/checkout|/wc-api|/addons|/lost-password|\?add-to-cart=|\?wc-api=|/ucp.php|^/status\.php|^/update\.php|^/install\.php|^/apc\.php$|^/apcu\.php$|^/admin|^/admin/.*$|^/user|^/user/.*$|^/users/.*$|^/info/.*$|^/flag/.*$|^.*/ajax/.*$|^.*/ahah/.*$|^/system/files/.*$|p=admin|/actions|/login|/logout|/connect|/signin|/signup|/register)") {
+    set $CACHE_BYPASS_FOR_DYNAMIC 1;
+    set $EXPIRES_FOR_DYNAMIC 0;
+}
+
+# Disable caching when the "Cache-Control" header is set to "private"
+if ($http_cache_control ~* "private") {
+    set $CACHE_BYPASS_FOR_DYNAMIC 1;
+    set $EXPIRES_FOR_DYNAMIC 0;
+}
+
+# Proxy cache settings
+proxy_no_cache                 $CACHE_BYPASS_FOR_DYNAMIC;
+proxy_cache_bypass             $CACHE_BYPASS_FOR_DYNAMIC;
+
+proxy_cache                    engintron_dynamic;
+#proxy_cache_background_update on;
+proxy_cache_key                "$MOBILE$host$request_uri";
+proxy_cache_lock               on;
+proxy_cache_methods            GET HEAD;
+proxy_cache_use_stale          error timeout invalid_header updating http_429 http_500 http_502 http_503 http_504; # Additional options: http_403 http_404
+proxy_cache_valid              200 1s;
+
+# Ignore all headers but "Cache-Control" to determine whether to cache the upstream response or not
+proxy_ignore_headers           Expires Set-Cookie Vary;
+
+# Force client-side caching for dynamic content (commented by default)
+# See "ADVANCED USERS ONLY" note at the top of this file
+#expires                       $EXPIRES_FOR_DYNAMIC;
+#proxy_hide_header             Cache-Control;
+#proxy_hide_header             Expires;
+#proxy_hide_header             Pragma;
+#proxy_hide_header             Set-Cookie;
+proxy_hide_header              Vary;
+
+# configuration file /etc/nginx/proxy_params_static:
+# /**
+#  * @version    1.13.0
+#  * @package    Engintron for cPanel/WHM
+#  * @author     Fotis Evangelou (https://kodeka.io)
+#  * @url        https://engintron.com
+#  * @copyright  Copyright (c) 2018 - 2020 Kodeka OÜ. All rights reserved.
+#  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
+#  */
+
+# === STATIC ASSET CACHING ===
+# Proxy Cache Settings for static files ONLY.
+# Nginx can cache static files and directly serve them without issuing calls to
+# Apache on every static file request.
+#
+# By default, Engintron will set a 10s (s for seconds) cache time for static files.
+#
+# To increase, simply adjust the value for "proxy_cache_valid". Just keep in
+# mind that when editing a file and unless you use cache busting techniques,
+# Nginx will serve that file's cached copy, until it expires in Nginx cache pool.
+#
+# Respects the different "Expires" values set per file type in "common_http.conf"
+# for client-side caching.
+#
+# Every other header is ignored, stripped or reset from the request to
+# maximize caching.
+#
+# Static asset caching is turned off when certain criteria are met, e.g. when a site
+# manager logs into WordPress' backend.
+
+# Admin sections for CMSs
+if ($request_uri ~* "(/administrator|/wp-admin|/wp-login.php)") {
+    set $CACHE_BYPASS_FOR_STATIC 1;
+}
+
+# Proxy cache settings
+proxy_no_cache                 $CACHE_BYPASS_FOR_STATIC;
+proxy_cache_bypass             $CACHE_BYPASS_FOR_STATIC;
+
+proxy_cache                    engintron_static;
+proxy_cache_background_update  on;
+proxy_cache_key                "$host$request_uri";
+proxy_cache_lock               on;
+proxy_cache_methods            GET HEAD;
+proxy_cache_min_uses           1;
+proxy_cache_revalidate         on;
+proxy_cache_use_stale          error timeout updating http_429 http_500 http_502 http_503 http_504;
+proxy_cache_valid              10s;
+
+# Allow rewriting HTTP headers for static assets
+proxy_ignore_headers           Cache-Control Expires Set-Cookie Vary;
+proxy_hide_header              Cache-Control;
+proxy_hide_header              Expires;
+proxy_hide_header              Pragma;
+proxy_hide_header              Set-Cookie;
+proxy_hide_header              Vary;
+
+# Disable logging
+access_log                     off;
+
+# configuration file /etc/nginx/conf.d/default_https.conf:
+
+# /**
+#  * @version    1.13.0
+#  * @package    Engintron for cPanel/WHM
+#  * @author     Fotis Evangelou (https://kodeka.io)
+#  * @url        https://engintron.com
+#  * @copyright  Copyright (c) 2018 - 2020 Kodeka OÜ. All rights reserved.
+#  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
+#  */
+
+# Default definition block for HTTPS (Generated on 2021.02.25 03:26:01) #
+server {
+    #listen 443 ssl http2 default_server;
+    listen [::]:443 ssl http2 default_server ipv6only=off;
+    server_name localhost;
+
+    deny all; # DO NOT REMOVE OR CHANGE THIS LINE - Used when Engintron is disabled to block Nginx from becoming an open proxy
+
+    ssl_certificate /var/cpanel/ssl/cpanel/mycpanel.pem;
+    ssl_certificate_key /var/cpanel/ssl/cpanel/mycpanel.pem;
+
+    # OCSP Stapling
+    #ssl_trusted_certificate /var/cpanel/ssl/cpanel/mycpanel.pem;
+    #ssl_stapling on;
+    #ssl_stapling_verify on;
+
+    include common_https.conf;
+
+    location = /nginx_status {
+        stub_status;
+        access_log off;
+        log_not_found off;
+        # Uncomment the following 2 lines to make the Nginx status page private.
+        # If you do this and you have Munin installed, graphs for Nginx will stop working.
+        #allow 127.0.0.1;
+        #deny all;
+    }
+
+    location = /whm-server-status {
+        proxy_pass http://127.0.0.1:8080;
+        # Comment the following 2 lines to make the Apache status page public
+        allow 127.0.0.1;
+        deny all;
+    }
+}
+    
+# configuration file /etc/nginx/common_https.conf:
+# /**
+#  * @version    1.13.0
+#  * @package    Engintron for cPanel/WHM
+#  * @author     Fotis Evangelou (https://kodeka.io)
+#  * @url        https://engintron.com
+#  * @copyright  Copyright (c) 2018 - 2020 Kodeka OÜ. All rights reserved.
+#  * @license    GNU/GPL license: https://www.gnu.org/copyleft/gpl.html
+#  */
+
+# Common definitions for HTTPS content
+
+# TLS/SSL common
+ssl_session_timeout 1d;
+ssl_session_cache shared:SSL:50m;
+ssl_session_tickets off;
+
+# Diffie-Hellman parameter for DHE ciphersuites (2048 bits)
+ssl_dhparam /etc/ssl/certs/dhparam.pem;
+
+# --- Protocols & Ciphers [start] ---
+
+# Maximum client support [enabled by default]
+# Supports Firefox 1, Android 2.3, Chrome 1, Edge 12, IE8 on Windows XP, Java 6, OpenSSL 0.9.8, Opera 5 & Safari 1
+ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3;
+ssl_ciphers ciphers_hidden_by_me;
+ssl_prefer_server_ciphers on;
+
+# Intermediate client support [disabled by default]
+# Supports Firefox 27, Android 4.4.2, Chrome 31, Edge, IE 11 on Windows 7, Java 8u31, OpenSSL 1.0.1, Opera 20 & Safari 9
+#ssl_protocols TLSv1.2 TLSv1.3;
+#ssl_ciphers ciphers_hidden_by_me;
+#ssl_prefer_server_ciphers off;
+
+# Modern client support [disabled by default]
+# Supports Firefox 63, Android 10.0, Chrome 70, Edge 75, Java 11, OpenSSL 1.1.1, Opera 57 & Safari 12.1
+#ssl_protocols TLSv1.3;
+#ssl_prefer_server_ciphers off;
+
+# --- Protocols & Ciphers [finish] ---
+
+# Set the port for HTTPS proxying
+set $PROXY_TO_PORT 443;
+
+# Include common definitions and rules with HTTP
+include common_http.conf;
+
+[root@myserver ~]# 
+
